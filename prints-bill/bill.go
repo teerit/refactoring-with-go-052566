@@ -5,7 +5,12 @@ import (
 	"math"
 )
 
-type Play map[string]map[string]string
+type Play struct {
+	Name string `json:"name"`
+	Kind string `json:"kind"`
+}
+
+type Plays map[string]Play
 
 type Performance struct {
 	PlayID   string `json:"playID"`
@@ -17,7 +22,7 @@ type Invoice struct {
 	Performances []Performance `json:"performances"`
 }
 
-func statement(invoice Invoice, plays Play) string {
+func statement(invoice Invoice, plays Plays) string {
 	totalAmount := 0.0
 	volumeCredits := 0.0
 	result := fmt.Sprintf("Statement for %s\n", invoice.Customer)
@@ -26,7 +31,7 @@ func statement(invoice Invoice, plays Play) string {
 		play := plays[perf.PlayID]
 		thisAmount := 0.0
 
-		switch play["kind"] {
+		switch play.Kind {
 		case "tragedy":
 			thisAmount = 40000
 			if perf.Audience > 30 {
@@ -39,18 +44,18 @@ func statement(invoice Invoice, plays Play) string {
 			}
 			thisAmount += 300 * float64(perf.Audience)
 		default:
-			panic(fmt.Sprintf("unknow type: %s", play["kind"]))
+			panic(fmt.Sprintf("unknow type: %s", play.Kind))
 		}
 
 		// add volume credits
 		volumeCredits += math.Max(float64(perf.Audience-30), 0)
 		// add extra credit for every ten comedy attendees
-		if "comedy" == play["kind"] {
+		if "comedy" == play.Kind {
 			volumeCredits += math.Floor(float64(perf.Audience / 5))
 		}
 
 		// print line for this order
-		result += fmt.Sprintf("  %s: $%.2f (%d seats)\n", play["name"], thisAmount/100, perf.Audience)
+		result += fmt.Sprintf("  %s: $%.2f (%d seats)\n", play.Name, thisAmount/100, perf.Audience)
 		totalAmount += thisAmount
 	}
 	result += fmt.Sprintf("Amount owed is $%.2f\n", totalAmount/100)
@@ -66,10 +71,10 @@ func main() {
 			{PlayID: "as-like", Audience: 35},
 			{PlayID: "othello", Audience: 40},
 		}}
-	plays := map[string]map[string]string{
-		"hamlet":  {"name": "Hamlet", "kind": "tragedy"},
-		"as-like": {"name": "As You Like It", "kind": "comedy"},
-		"othello": {"name": "Othello", "kind": "tragedy"},
+	plays := map[string]Play{
+		"hamlet":  {Name: "Hamlet", Kind: "tragedy"},
+		"as-like": {Name: "As You Like It", Kind: "comedy"},
+		"othello": {Name: "Othello", Kind: "tragedy"},
 	}
 
 	bill := statement(inv, plays)
