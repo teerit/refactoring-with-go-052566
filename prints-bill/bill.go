@@ -22,40 +22,55 @@ type Invoice struct {
 	Performances []Performance `json:"performances"`
 }
 
+func playKind(play Play) string {
+	return play.Kind
+}
+
+func playName(play Play) string {
+	return play.Name
+}
+
+func playFor(plays Plays, perf Performance) Play {
+	return plays[perf.PlayID]
+}
+
+func amountFor(plays Plays, perf Performance) float64 {
+	amount := 0.0
+	switch playKind(playFor(plays, perf)) {
+	case "tragedy":
+		amount = 40000
+		if perf.Audience > 30 {
+			amount += 1000 * (float64(perf.Audience - 30))
+		}
+	case "comedy":
+		amount = 30000
+		if perf.Audience > 20 {
+			amount += 10000 + 500*(float64(perf.Audience-20))
+		}
+		amount += 300 * float64(perf.Audience)
+	default:
+		panic(fmt.Sprintf("unknow type: %s", playKind(playFor(plays, perf))))
+	}
+	return amount
+}
+
 func statement(invoice Invoice, plays Plays) string {
 	totalAmount := 0.0
 	volumeCredits := 0.0
 	result := fmt.Sprintf("Statement for %s\n", invoice.Customer)
 
 	for _, perf := range invoice.Performances {
-		play := plays[perf.PlayID]
-		thisAmount := 0.0
-
-		switch play.Kind {
-		case "tragedy":
-			thisAmount = 40000
-			if perf.Audience > 30 {
-				thisAmount += 1000 * (float64(perf.Audience - 30))
-			}
-		case "comedy":
-			thisAmount = 30000
-			if perf.Audience > 20 {
-				thisAmount += 10000 + 500*(float64(perf.Audience-20))
-			}
-			thisAmount += 300 * float64(perf.Audience)
-		default:
-			panic(fmt.Sprintf("unknow type: %s", play.Kind))
-		}
+		thisAmount := amountFor(plays, perf)
 
 		// add volume credits
 		volumeCredits += math.Max(float64(perf.Audience-30), 0)
 		// add extra credit for every ten comedy attendees
-		if "comedy" == play.Kind {
+		if "comedy" == playKind(playFor(plays, perf)) {
 			volumeCredits += math.Floor(float64(perf.Audience / 5))
 		}
 
 		// print line for this order
-		result += fmt.Sprintf("  %s: $%.2f (%d seats)\n", play.Name, thisAmount/100, perf.Audience)
+		result += fmt.Sprintf("  %s: $%.2f (%d seats)\n", playName(playFor(plays, perf)), thisAmount/100, perf.Audience)
 		totalAmount += thisAmount
 	}
 	result += fmt.Sprintf("Amount owed is $%.2f\n", totalAmount/100)
