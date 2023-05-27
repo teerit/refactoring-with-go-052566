@@ -34,49 +34,49 @@ func playFor(plays Plays, perf Performance) Play {
 	return plays[perf.PlayID]
 }
 
-func amountFor(plays Plays, perf Performance) float64 {
+func (play Play) amountFor(audience int) float64 {
 	amount := 0.0
-	switch playKind(playFor(plays, perf)) {
+	switch play.Kind {
 	case "tragedy":
 		amount = 40000
-		if perf.Audience > 30 {
-			amount += 1000 * (float64(perf.Audience - 30))
+		if audience > 30 {
+			amount += 1000 * (float64(audience - 30))
 		}
 	case "comedy":
 		amount = 30000
-		if perf.Audience > 20 {
-			amount += 10000 + 500*(float64(perf.Audience-20))
+		if audience > 20 {
+			amount += 10000 + 500*(float64(audience-20))
 		}
-		amount += 300 * float64(perf.Audience)
+		amount += 300 * float64(audience)
 	default:
-		panic(fmt.Sprintf("unknow type: %s", playKind(playFor(plays, perf))))
+		panic(fmt.Sprintf("unknow type: %s", play.Kind))
 	}
 	return amount
 }
 
-func volumeCreditsFor(plays Plays, perf Performance) float64 {
+func (play Play) volumeCreditsFor(audience int) float64 {
 	credits := 0.0
-	// add volume credits
-	credits += math.Max(float64(perf.Audience-30), 0)
-	// add extra credit for every ten comedy attendees
-	if "comedy" == playKind(playFor(plays, perf)) {
-		credits += math.Floor(float64(perf.Audience / 5))
+	credits += math.Max(float64(audience-30), 0)
+	if play.Kind == "comedy" {
+		credits += math.Floor(float64(audience / 5))
 	}
 	return credits
 }
 
-func totalAmount(plays Plays, inv Invoice) float64 {
+type Rates []Rate
+
+func (rates Rates) totalAmount() float64 {
 	amount := 0.0
-	for _, perf := range inv.Performances {
-		amount += amountFor(plays, perf)
+	for _, rate := range rates {
+		amount += rate.Amount
 	}
 	return amount
 }
 
-func totalVolumeCredits(plays Plays, inv Invoice) float64 {
+func (rates Rates) totalVolumeCredits() float64 {
 	credits := 0.0
-	for _, perf := range inv.Performances {
-		credits += volumeCreditsFor(plays, perf)
+	for _, rate := range rates {
+		credits += rate.Credits
 	}
 	return credits
 }
@@ -85,13 +85,14 @@ type Rate struct {
 	Play     Play
 	Amount   float64
 	Audience int
+	Credits  float64
 }
 
 type Bill struct {
 	Customer           string
 	TotalAmount        float64
 	TotalVolumeCredits float64
-	Rates              []Rate
+	Rates              Rates
 }
 
 func renderPlainText(bill Bill) string {
@@ -104,33 +105,36 @@ func renderPlainText(bill Bill) string {
 	return result
 }
 
-func renderHtml(bill Bill) string {
-	result := fmt.Sprintf("<h1>Statement for %s</h1>\n", bill.Customer)
-	result += "<table>\n"
-	result += "<tr><th>play</th><th>seats</th><th>cost</th></tr>"
-	for _, rate := range bill.Rates {
-		result += fmt.Sprintf("<tr><td>%s</td><td>%d</td><td>$%.2f</td></tr>\n", rate.Play.Name, rate.Audience, rate.Amount/100)
-	}
-	result += "</table>\n"
-	result += fmt.Sprintf("<p>Amount owed is <em>$%.2f</em></p>\n", bill.TotalAmount/100)
-	result += fmt.Sprintf("<p>you earned <em>%.0f</em> credits</p>\n", bill.TotalVolumeCredits)
-	return result
-}
+// func renderHtml(bill Bill) string {
+// 	result := fmt.Sprintf("<h1>Statement for %s</h1>\n", bill.Customer)
+// 	result += "<table>\n"
+// 	result += "<tr><th>play</th><th>seats</th><th>cost</th></tr>"
+// 	for _, rate := range bill.Rates {
+// 		result += fmt.Sprintf("<tr><td>%s</td><td>%d</td><td>$%.2f</td></tr>\n", rate.Play.Name, rate.Audience, rate.Amount/100)
+// 	}
+// 	result += "</table>\n"
+// 	result += fmt.Sprintf("<p>Amount owed is <em>$%.2f</em></p>\n", bill.TotalAmount/100)
+// 	result += fmt.Sprintf("<p>you earned <em>%.0f</em> credits</p>\n", bill.TotalVolumeCredits)
+// 	return result
+// }
 
 func statement(invoice Invoice, plays Plays) string {
-	var rates []Rate
+	var rates Rates
 	for _, perf := range invoice.Performances {
+		play := playFor(plays, perf)
+		audience := perf.Audience
 		rates = append(rates, Rate{
-			Play:     playFor(plays, perf),
-			Amount:   amountFor(plays, perf),
-			Audience: perf.Audience,
+			Play:     play,
+			Amount:   play.amountFor(audience),
+			Audience: audience,
+			Credits:  play.volumeCreditsFor(audience),
 		})
 	}
 
 	bill := Bill{
 		Customer:           invoice.Customer,
-		TotalAmount:        totalAmount(plays, invoice),
-		TotalVolumeCredits: totalVolumeCredits(plays, invoice),
+		TotalAmount:        rates.totalAmount(),
+		TotalVolumeCredits: rates.totalVolumeCredits(),
 		Rates:              rates,
 	}
 
