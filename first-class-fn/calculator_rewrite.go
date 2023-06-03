@@ -30,8 +30,9 @@ func main() {
 
 	// TO BE:
 	// var c Calculator
-	// c.Do(Add(1))
-	// c.Do(Add(1))
+	// c.Do(Add(5))
+	// c.Do(Sub(3))
+	// c.Do(Mul(8))
 	// c.Do(Sqrt())
 	// c.Do(math.Sqrt) // 1.41421356237 c.Do(math.Cos) // 0.99969539804
 }
