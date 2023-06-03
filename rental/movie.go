@@ -1,26 +1,29 @@
 package rental
 
-const CHILDRENS = 2
-const NEW_RELEASE = 1
-const REGULAR = 0
+type PriceCode int
+
+const (
+	Childrens PriceCode = iota
+	NewRelease
+	Regular
+)
 
 type Movie struct {
-	_title     string
-	_priceCode int
+	title     string
+	priceCode PriceCode
 }
 
-func NewMovie(title string, priceCode int) (rcvr *Movie) {
-	rcvr = &Movie{}
-	rcvr._title = title
-	rcvr._priceCode = priceCode
-	return
+func NewMovie(title string, priceCode PriceCode) Movie {
+	return Movie{
+		title:     title,
+		priceCode: priceCode,
+	}
 }
-func (rcvr *Movie) GetPriceCode() int {
-	return rcvr._priceCode
+
+func (m Movie) PriceCode() PriceCode {
+	return m.priceCode
 }
-func (rcvr *Movie) GetTitle() string {
-	return rcvr._title
-}
-func (rcvr *Movie) SetPriceCode(arg int) {
-	rcvr._priceCode = arg
+
+func (m Movie) Title() string {
+	return m.title
 }

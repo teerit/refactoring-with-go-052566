@@ -1,19 +1,19 @@
 package rental
 
 type Rental struct {
-	_movie      *Movie
-	_daysRented int
+	movie      Movie
+	daysRented int
 }
 
-func NewRental(movie *Movie, daysRented int) (rcvr *Rental) {
-	rcvr = &Rental{}
-	rcvr._movie = movie
-	rcvr._daysRented = daysRented
-	return
+func NewRental(movie Movie, daysRented int) Rental {
+	return Rental{
+		movie:      movie,
+		daysRented: daysRented,
+	}
 }
-func (rcvr *Rental) GetDaysRented() int {
-	return rcvr._daysRented
+func (r Rental) DaysRented() int {
+	return r.daysRented
 }
-func (rcvr *Rental) GetMovie() *Movie {
-	return rcvr._movie
+func (r Rental) Movie() Movie {
+	return r.movie
 }
