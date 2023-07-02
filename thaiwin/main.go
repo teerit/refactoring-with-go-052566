@@ -14,10 +14,6 @@ import (
 func main() {
 	r := mux.NewRouter()
 
-<<<<<<< HEAD
-	r.HandleFunc("/recently", Recently).Methods(http.MethodPost)
-	r.HandleFunc("/checkin", CheckIn).Methods(http.MethodPost)
-=======
 	db, err := InitDB()
 	if err != nil {
 		log.Println("db connection error:", err)
@@ -28,7 +24,6 @@ func main() {
 
 	r.HandleFunc("/recently", Recently).Methods(http.MethodPost)
 	r.HandleFunc("/checkin", h.CheckIn).Methods(http.MethodPost)
->>>>>>> 4f9c821 (refactor from classroom)
 	r.HandleFunc("/checkout", CheckOut).Methods(http.MethodPost)
 
 	srv := &http.Server{
