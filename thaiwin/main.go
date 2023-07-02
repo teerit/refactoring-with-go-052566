@@ -14,8 +14,16 @@ import (
 func main() {
 	r := mux.NewRouter()
 
+	db, err := InitDB()
+	if err != nil {
+		log.Println("db connection error:", err)
+	}
+	defer db.Close()
+
+	h := NewCheckHandler(db)
+
 	r.HandleFunc("/recently", Recently).Methods(http.MethodPost)
-	r.HandleFunc("/checkin", CheckIn).Methods(http.MethodPost)
+	r.HandleFunc("/checkin", h.CheckIn).Methods(http.MethodPost)
 	r.HandleFunc("/checkout", CheckOut).Methods(http.MethodPost)
 
 	srv := &http.Server{
@@ -34,6 +42,14 @@ type Check struct {
 	PlaceID int64 `json:"place_id"`
 }
 
+type handler struct {
+	Db *sql.DB
+}
+
+func NewCheckHandler(db *sql.DB) *handler {
+	return &handler{db}
+}
+
 type Location struct {
 	Lat  float64 `json:"lat"`
 	Long float64 `json:"long"`
@@ -44,8 +60,13 @@ func Recently(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("hello"))
 }
 
+func InitDB() (*sql.DB, error) {
+	db, err := sql.Open("sqlite3", "thaiwin.db")
+	return db, err
+}
+
 // CheckIn check-in to place, returns density (ok, too much)
-func CheckIn(w http.ResponseWriter, r *http.Request) {
+func (h *handler) CheckIn(w http.ResponseWriter, r *http.Request) {
 	chk := Check{}
 	if err := json.NewDecoder(r.Body).Decode(&chk); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -54,14 +75,7 @@ func CheckIn(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	db, err := sql.Open("sqlite3", "thaiwin.db")
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	defer db.Close()
-
-	_, err = db.Exec("INSERT INTO visits VALUES(?, ?);", chk.ID, chk.PlaceID)
+	_, err := h.Db.Exec("INSERT INTO visits VALUES(?, ?);", chk.ID, chk.PlaceID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(err)
